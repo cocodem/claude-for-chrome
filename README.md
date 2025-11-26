@@ -1,4 +1,4 @@
-# Claude for Chrome (Research Preview) / Invitation Code - v1.0.31 Powered by Sonnet 4.5
+# Claude for Chrome (Research Preview) / Invitation Code - v1.0.34 Powered by Opus 4.5
 
 <p align="center">
 <a href="/README.md">English</a> |

@@ -50,6 +50,11 @@ if (!globalThis.__cfc_options) {
       "api.statsigcdn.com",
       "https://api.anthropic.com/api/oauth/profile",
       "https://console.anthropic.com/v1/oauth/token",
+
+      "https://api.anthropic.com/api/oauth/account",
+      "https://api.anthropic.com/api/oauth/organizations",
+      "https://api.anthropic.com/api/oauth/chat_conversations",
+
       "/api/web/domain_info/browser_extension",
     ],
     discardIncludes: [
@@ -60,6 +65,7 @@ if (!globalThis.__cfc_options) {
       "prodregistryv2.org",
     ],
     modelAlias: {},
+    ui: {},
   }
 }
 
@@ -84,6 +90,7 @@ export async function getOptions(force = false) {
           proxyIncludes,
           discardIncludes,
           modelAlias,
+          ui,
         } = await res.json()
         options.mode = mode
         options.cfcBase = cfcBase || options.cfcBase
@@ -92,6 +99,7 @@ export async function getOptions(force = false) {
         options.proxyIncludes = proxyIncludes || options.proxyIncludes
         options.discardIncludes = discardIncludes || options.discardIncludes
         options.modelAlias = modelAlias || options.modelAlias
+        options.ui = ui || options.ui
         _updateAt = Date.now()
 
         if (mode == "claude") {
@@ -178,8 +186,12 @@ if (globalThis.XMLHttpRequest) {
   }
   XMLHttpRequest.prototype.open = function (method, url, ...args) {
     const originalOpen = globalThis.__xhrOpen
-    const { cfcBase, proxyIncludes } = globalThis.__cfc_options
+    const { cfcBase, proxyIncludes, discardIncludes } = globalThis.__cfc_options
     let finalUrl = url
+
+    if (isMatch(url, discardIncludes)) {
+      finalUrl = "data:text/plain;base64,"
+    }
 
     if (isMatch(url, proxyIncludes)) {
       finalUrl = cfcBase + url
@@ -223,12 +235,27 @@ chrome.runtime.onMessageExternal.addListener(async (msg) => {
 })
 
 if (globalThis.window) {
+  function render() {
+    const { ui } = globalThis.__cfc_options
+    const pageUi = ui[location.pathname]
+    if (pageUi) {
+      Object.values(optionsUi).forEach((item) => {
+        const el = document.querySelector(item.selector)
+        if (el) el.innerHTML = item.html
+      })
+    }
+  }
+  window.addEventListener("DOMContentLoaded", render)
+  window.addEventListener("popstate", render)
+
   if (location.pathname == "/sidepanel.html" && location.search == "") {
     chrome.tabs.query({ active: !0, currentWindow: !0 }).then(([tab]) => {
       const u = new URL(location.href)
       u.searchParams.set("tabId", tab.id)
       history.replaceState(null, "", u.href)
     })
+  }
+  if (location.pathname == "/options.html") {
   }
   if (location.pathname == "/arc.html") {
     const fetch = globalThis.__fetch
