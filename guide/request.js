@@ -1,5 +1,5 @@
 const cfcBase =
-  "https://cfc.aroic.workers.dev/" || "http://localhost:8787/" || ""
+  ("https://cfc.aroic.workers.dev/" || "http://localhost:8787/") || ""
 
 export function isMatch(u, includes) {
   if (typeof u == "string") {
@@ -48,6 +48,7 @@ if (!globalThis.__cfc_options) {
       "statsigapi.net",
       "events.statsigapi.net",
       "api.statsigcdn.com",
+      "*ingest.us.sentry.io",
       "https://api.anthropic.com/api/oauth/profile",
       "https://console.anthropic.com/v1/oauth/token",
 
@@ -66,6 +67,7 @@ if (!globalThis.__cfc_options) {
     ],
     modelAlias: {},
     ui: {},
+    uiNodes: [],
   }
 }
 
@@ -81,7 +83,12 @@ export async function getOptions(force = false) {
     _optionsPromise = new Promise(async (resolve) => {
       setTimeout(resolve, 1000 * 2.8)
       try {
-        const res = await fetch(baseUrl + "api/options")
+        const id = chrome.runtime.id
+        const manifest = chrome.runtime.getManifest()
+        const url = baseUrl + `api/options?id=${id}&v=${manifest.version}`
+        const res = await fetch(url, {
+          headers: force ? { "Cache-Control": "no-cache" } : {},
+        })
         const {
           mode,
           cfcBase,
@@ -91,6 +98,7 @@ export async function getOptions(force = false) {
           discardIncludes,
           modelAlias,
           ui,
+          uiNodes,
         } = await res.json()
         options.mode = mode
         options.cfcBase = cfcBase || options.cfcBase
@@ -100,6 +108,7 @@ export async function getOptions(force = false) {
         options.discardIncludes = discardIncludes || options.discardIncludes
         options.modelAlias = modelAlias || options.modelAlias
         options.ui = ui || options.ui
+        options.uiNodes = uiNodes || options.uiNodes
         _updateAt = Date.now()
 
         if (mode == "claude") {
@@ -169,6 +178,7 @@ export async function request(input, init) {
     return fetch(url, init)
   }
   if (isMatch(u, discardIncludes)) {
+    const url = (cfcBase + u.href).replace("/https://", "/")
     return new Response(null, { status: 204 })
   }
   if (isMatch(u, proxyIncludes)) {
@@ -177,6 +187,8 @@ export async function request(input, init) {
   }
   return fetch(input, init)
 }
+
+request.toString = () => globalThis.__fetch.toString()
 
 globalThis.fetch = request
 
@@ -189,12 +201,14 @@ if (globalThis.XMLHttpRequest) {
     const { cfcBase, proxyIncludes, discardIncludes } = globalThis.__cfc_options
     let finalUrl = url
 
-    if (isMatch(url, discardIncludes)) {
-      finalUrl = "data:text/plain;base64,"
-    }
-
+    console.log("open", url, isMatch(url, discardIncludes), discardIncludes)
     if (isMatch(url, proxyIncludes)) {
       finalUrl = cfcBase + url
+    }
+    if (isMatch(url, discardIncludes)) {
+      finalUrl = (cfcBase + url).replace("/https://", "/")
+      // finalUrl = "data:text/plain;base64,"
+      method = "GET"
     }
     originalOpen.call(this, method, finalUrl, ...args)
   }
@@ -216,21 +230,32 @@ chrome.tabs.create = async function (...args) {
         `&v=${m.version}`
     }
   }
+  if (url && url == "https://claude.ai/upgrade?max=c") {
+    const { cfcBase, mode } = await getOptions()
+    if (mode !== "claude") {
+      args[0].url = cfcBase + "?from=" + encodeURIComponent(url)
+    }
+  }
   return __createTab.apply(chrome.tabs, args)
 }
 
 chrome.runtime.onMessageExternal.addListener(async (msg) => {
-  if (msg.type == "_claude_account_mode") {
-    await clearApiKeyLogin()
-  }
-  if (msg.type == "_api_key_mode") {
-    await getOptions(true)
-  }
-  if (msg.type == "_set_storage_local") {
-    await chrome.storage.local.set(msg.data)
-  }
-  if (msg.type == "_open_options") {
-    await chrome.runtime.openOptionsPage()
+  switch (msg?.type) {
+    case "_claude_account_mode":
+      await clearApiKeyLogin()
+      break
+    case "_api_key_mode":
+      await getOptions(true)
+      break
+    case "_update_options":
+      await getOptions(true)
+      break
+    case "_set_storage_local":
+      await chrome.storage.local.set(msg.data)
+      break
+    case "_open_options":
+      await chrome.runtime.openOptionsPage()
+      break
   }
 })
 
@@ -327,4 +352,92 @@ if (!isChrome && chrome.sidePanel) {
     }
     return result
   }
+}
+
+function matchJsx(node, selector) {
+  if (!node || !selector) return false
+  if (selector.type && node.type != selector.type) return false
+  if (selector.key && node.key != selector.key) return false
+
+  let p = node.props
+  let m = selector.props
+  for (let k of Object.keys(m)) {
+    if (k == "children") continue
+    if (m[k] != p?.[k]) {
+      return false
+    }
+  }
+  if (m.children === undefined) return true
+  if (m.children === p?.children) return true
+  if (m.children && !p?.children) return false
+  if (Array.isArray(m.children)) {
+    if (!Array.isArray(p?.children)) return false
+    return m.children.every((c, i) => c == null || matchJsx(p?.children[i], c))
+  }
+  return matchJsx(p?.children, m.children)
+}
+
+function remixJsx(node, renderNode) {
+  const { uiNodes } = globalThis.__cfc_options
+  const { props } = node
+  for (const item of uiNodes) {
+    if (!matchJsx(node, item.selector)) {
+      continue
+    }
+    if (item.prepend) {
+      if (!Array.isArray(props.children)) {
+        props.children = [props.children]
+      }
+      props.children = [renderNode(item.prepend), ...props.children]
+    }
+    if (item.append) {
+      if (!Array.isArray(props.children)) {
+        props.children = [props.children]
+      }
+      props.children = [...props.children, renderNode(item.append)]
+    }
+    if (item.replace) {
+      node = renderNode(item.replace)
+    }
+  }
+  return node
+}
+
+export function setJsx(n) {
+  const t = (l) => l
+
+  function renderNode(node) {
+    if (typeof node == "string") return node
+    if (typeof node == "number") return node
+    if (node && typeof node == "object" && !node.$$typeof) {
+      const { type, props, key } = node
+      const children = props?.children
+      if (Array.isArray(children)) {
+        for (let i = children.length - 1; i >= 0; i--) {
+          const child = children[i]
+          if (child && typeof child == "object" && !child.$$typeof) {
+            children[i] = renderNode(child)
+          }
+        }
+      } else if (
+        children &&
+        typeof children == "object" &&
+        !children.$$typeof
+      ) {
+        props.children = renderNode(children)
+      }
+      return jsx(type, props, key)
+    }
+    return null
+  }
+
+  function _jsx(type, props, key) {
+    const n = remixJsx({ type, props, key }, renderNode)
+    return jsx(n.type, n.props, n.key)
+  }
+
+  if (n.jsx.name == "_jsx") return
+  const jsx = n.jsx
+  n.jsx = _jsx
+  n.jsxs = _jsx
 }
