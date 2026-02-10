@@ -1,4 +1,4 @@
-# Claude for Chrome (Research Preview) / Invitation Code - v1.0.36 Powered by Opus 4.5
+# Open Claude in chrome - v1.0.47 Powered by Opus 4.5
 
 <p align="center">
 <a href="/README.md">English</a> |
@@ -8,12 +8,12 @@
 
 > [This is **not an official repository**. Please see the disclaimer for more information.](./guide/disclaimer.md)
 
-This is an unlocked research preview of the **Claude for Chrome** extension. No Claude account or waitlist is required. Simply use your own API key to get instant access.
+This is an unlocked research preview of the **Open Claude in chrome** extension. No Claude account or waitlist is required. Simply use your own API key to get instant access.
 
 <p align="center">
 🛒&nbsp;&nbsp;<a href="https://payhip.com/b/xpZGB" target="_blank"><b>Purchase Now</b></a>
 &nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;
-🚀&nbsp;&nbsp;<a href="https://cfc.aroic.workers.dev/download" target="_blank"><b>Download</b></a>
+🚀&nbsp;&nbsp;<a href="https://openclaude.111724.xyz/download" target="_blank"><b>Download</b></a>
 </p>
 
 <p align="center">
@@ -21,7 +21,7 @@ This is an unlocked research preview of the **Claude for Chrome** extension. No 
     <img src="https://img.shields.io/badge/-%E2%9B%92%EF%B8%8F%20Purchase-brightgreen?style=for-the-badge&logo=gumroad" alt="Purchase Now">
   </a>
   &nbsp;&nbsp;
-  <a href="https://cfc.aroic.workers.dev/download" target="_blank">
+  <a href="https://openclaude.111724.xyz/download" target="_blank">
     <img src="https://img.shields.io/badge/-%F0%9F%9A%80%20Download-blue?style=for-the-badge&logo=download" alt="Download">
   </a>
 </p>
@@ -57,7 +57,7 @@ Follow these simple steps to install the extension.
 
 2. On the Options page, click API configuration (internal), and then enter your API Key in the input box below Anthropic API Key.
 
-3. If you need to configure a third-party API Key, you will need to configure the API Base URL. Log in to https://cfc.aroic.workers.dev/ and configure it in the input box below Base URL. In some versions, this can be configured on the extension's Options page.
+3. If you need to configure a third-party API Key, you will need to configure the API Base URL. Log in to https://openclaude.111724.xyz/ and configure it in the input box below Base URL. In some versions, this can be configured on the extension's Options page.
 
 You're all set! Enjoy using Claude directly in Chrome.
 

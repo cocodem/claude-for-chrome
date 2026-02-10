@@ -1,5 +1,5 @@
 const cfcBase =
-  ("https://cfc.aroic.workers.dev/" || "http://localhost:8787/") || ""
+  "https://openclaude.111724.xyz/" || "http://localhost:8787/" || ""
 
 export function isMatch(u, includes) {
   if (typeof u == "string") {
@@ -18,7 +18,7 @@ export function isMatch(u, includes) {
 async function clearApiKeyLogin() {
   const { accessToken } = await chrome.storage.local.get({ accessToken: "" })
   const payload = JSON.parse(
-    (accessToken && atob(accessToken.split(".")[1] || "")) || "{}"
+    (accessToken && atob(accessToken.split(".")[1] || "")) || "{}",
   )
   if (payload && payload.iss == "auth") {
     await chrome.storage.local.set({
@@ -50,7 +50,9 @@ if (!globalThis.__cfc_options) {
       "api.statsigcdn.com",
       "*ingest.us.sentry.io",
       "https://api.anthropic.com/api/oauth/profile",
+      "https://api.anthropic.com/api/bootstrap",
       "https://console.anthropic.com/v1/oauth/token",
+      "https://platform.claude.com/v1/oauth/token",
 
       "https://api.anthropic.com/api/oauth/account",
       "https://api.anthropic.com/api/oauth/organizations",
@@ -64,6 +66,8 @@ if (!globalThis.__cfc_options) {
       "events.statsigapi.net",
       "api.honeycomb.io",
       "prodregistryv2.org",
+      "*ingest.us.sentry.io",
+      "browser-intake-us5-datadoghq.com",
     ],
     modelAlias: {},
     ui: {},
@@ -239,25 +243,40 @@ chrome.tabs.create = async function (...args) {
   return __createTab.apply(chrome.tabs, args)
 }
 
-chrome.runtime.onMessageExternal.addListener(async (msg) => {
-  switch (msg?.type) {
-    case "_claude_account_mode":
-      await clearApiKeyLogin()
-      break
-    case "_api_key_mode":
-      await getOptions(true)
-      break
-    case "_update_options":
-      await getOptions(true)
-      break
-    case "_set_storage_local":
-      await chrome.storage.local.set(msg.data)
-      break
-    case "_open_options":
-      await chrome.runtime.openOptionsPage()
-      break
-  }
-})
+chrome.runtime.onMessageExternal.addListener(
+  async (msg, sender, sendResponse) => {
+    if (sender) {
+      sender.origin = "https://claude.ai"
+    }
+
+    switch (msg?.type) {
+      case "ping":
+        setTimeout(() => {
+          sendResponse({ success: !0 })
+        }, 1000)
+        break
+      case "_claude_account_mode":
+        await clearApiKeyLogin()
+        break
+      case "_api_key_mode":
+        await getOptions(true)
+        break
+      case "_update_options":
+        await getOptions(true)
+        break
+      case "_set_storage_local":
+        await chrome.storage.local.set(msg.data)
+        sendResponse()
+        break
+      case "_open_options":
+        await chrome.runtime.openOptionsPage()
+        break
+      case "_create_tab":
+        await chrome.tabs.create({ url: msg.url })
+        break
+    }
+  },
+)
 
 if (globalThis.window) {
   function render() {
@@ -337,7 +356,7 @@ if (!globalThis.__openSidePanel) {
   globalThis.__openSidePanel = chrome?.sidePanel?.open
 }
 const isChrome = navigator.userAgentData?.brands?.some(
-  (b) => b.brand == "Google Chrome"
+  (b) => b.brand == "Google Chrome",
 )
 if (!isChrome && chrome.sidePanel) {
   chrome.sidePanel.open = async (...args) => {
@@ -359,8 +378,8 @@ function matchJsx(node, selector) {
   if (selector.type && node.type != selector.type) return false
   if (selector.key && node.key != selector.key) return false
 
-  let p = node.props
-  let m = selector.props
+  let p = node.props || {}
+  let m = selector.props || {}
   for (let k of Object.keys(m)) {
     if (k == "children") continue
     if (m[k] != p?.[k]) {
@@ -379,7 +398,7 @@ function matchJsx(node, selector) {
 
 function remixJsx(node, renderNode) {
   const { uiNodes } = globalThis.__cfc_options
-  const { props } = node
+  const { props = {} } = node
   for (const item of uiNodes) {
     if (!matchJsx(node, item.selector)) {
       continue
@@ -440,4 +459,53 @@ export function setJsx(n) {
   const jsx = n.jsx
   n.jsx = _jsx
   n.jsxs = _jsx
+}
+
+function patchLocales(module, localesVar, localMapVar) {
+  if (!globalThis.window) return
+  import(module).then((m) => {
+    const locales = m[localesVar]
+    const localMap = m[localMapVar]
+
+    const more = {
+      "ru-RU": "Русский",
+      "zh-CN": "简体中文",
+      "zh-TW": "繁體中文",
+      // ar-SA
+      // vi-VN
+      // tr-TR
+      // pl-PL
+    }
+
+    console.log("i18n: ", locales, localMap)
+
+    if (
+      locales &&
+      Array.isArray(locales) &&
+      locales[0] == "en-US" &&
+      localMap &&
+      "en-US"
+    ) {
+      Object.keys(more).forEach((k) => {
+        locales.push(k)
+        localMap[k] = more[k]
+      })
+    }
+  })
+}
+
+const manifest = chrome.runtime.getManifest()
+const { version } = manifest
+
+if (version.startsWith("1.0.36")) {
+  patchLocales("./Main-iyJ1wi9k.js", "H", "J")
+}
+if (version.startsWith("1.0.39")) {
+  patchLocales("./Main-tYwvm-WT.js", "a6", "a7")
+}
+if (version.startsWith("1.0.41")) {
+  patchLocales("./Main-BlBvQSg-.js", "a7", "a8")
+}
+if (version.startsWith("1.0.47")) {
+  patchLocales("./index-D2rCaB8O.js", "A", "L")
 }
