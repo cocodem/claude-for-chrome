@@ -1,4 +1,4 @@
-# Claude for Chrome (研究预览版) / 邀请码 - v1.0.36 (Powered by Opus 4.5)
+# Open Claude for Chrome (研究预览版) - v1.0.66 (Powered by Opus 4.6)
 
 <p align="center">
 <a href="/README.md">English</a> |

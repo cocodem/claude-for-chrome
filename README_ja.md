@@ -1,4 +1,4 @@
-# Claude for Chrome (リサーチプレビュー) / 招待コード - v1.0.36 (Powered by Opus 4.5)
+# Open Claude for Chrome (リサーチプレビュー) / 招待コード - v1.0.66 (Powered by Opus 4.6)
 
 <p align="center">
 <a href="/README.md">English</a> |

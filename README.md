@@ -1,4 +1,4 @@
-# Open Claude in chrome - v1.0.47 Powered by Opus 4.5
+# Open Claude in chrome - v1.0.66 Powered by Opus 4.6
 
 <p align="center">
 <a href="/README.md">English</a> |
